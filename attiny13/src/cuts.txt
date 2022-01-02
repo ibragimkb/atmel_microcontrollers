@@ -1,0 +1,122 @@
+static int c;
+static int b;
+
+ISR(TIM0_COMPA_vect)
+{
+/*
+	if (c == 16) {
+	        //PORTB ^= _BV(LED_PIN); // toggle LED pin
+		PORTB ^= LED_BIT; // toggle LED pin
+		if (b == 0) {
+			PORTB ^= LED_BIT0; // toggle LED pin
+			b++;
+		}
+		else if (b == 1){
+			PORTB ^= LED_BIT1; // toggle LED pin
+			b++;
+		}
+		else if (b == 2)
+		{
+			PORTB ^= LED_BIT2; // toggle LED pin
+			b++;
+		}
+		else {
+			b = 0;
+			PORTB = 0b00000000;
+		}
+
+
+
+		c = 0;
+	}
+	c++;
+*/
+
+	if (c == 16) {
+	        //PORTB ^= _BV(LED_PIN); // toggle LED pin
+		PORTB ^= LED_BIT; // toggle LED pin
+		if (b == 0) {
+			PORTB ^= LED_BIT2; // toggle LED pin
+			b++;
+		}
+		else if (b == 1){
+			PORTB ^= LED_BIT2; // toggle LED pin
+			PORTB ^= LED_BIT0;
+			b++;
+		}
+		else if (b == 2)
+		{
+			PORTB ^= LED_BIT0; // toggle LED pin
+			PORTB ^= LED_BIT1;
+			b++;
+		}
+		else {
+			b = 1;
+			PORTB ^= LED_BIT2; // toggle LED pin
+			PORTB ^= LED_BIT1;
+		}
+
+
+
+		c = 0;
+	}
+	c++;
+
+}
+
+	c = 0;
+	b = 0;
+
+        TCCR0A |= _BV(WGM01); // set timer counter mode to CTC
+        //TCCR0B |= _BV(CS02)|_BV(CS00); // set prescaler to 1024 (CLK=1200000Hz/1024/256=4.57Hz, 0.22s)
+	TCCR0B |= _BV(CS01)|_BV(CS00); // set prescaler to 1024 (CLK=1200000Hz/64/256=4.57Hz, 0.22s)
+        OCR0A = 255; // set Timer's counter max value
+	//OCR0A = 64; // set Timer's counter max value
+        TIMSK0 |= _BV(OCIE0A); // enable Timer CTC interrupt
+
+
+ISR(ADC_vect)
+{
+
+	/*if (counter < N) {
+                samples[counter++] = ADCH - 128; // read raw sample <-128; 127>
+		ADCSRA |= _BV(ADSC); // trigger next signal acquisition
+        }*/
+    PORTB ^= LED_BIT;
+    int r = ADCH;
+    if (r > 127) PORTB ^= LED_BIT0;
+    if (r < 127) PORTB ^= LED_BIT1;
+    if (r < 64) PORTB ^= LED_BIT2;
+    _delay_ms(500);
+    
+    ADCSRA |= _BV(ADSC);
+}
+
+int
+main(void)
+{
+
+
+        /* setup */
+        //DDRB = 0b00000001; // set LED pin as OUTPUT
+	DDRB |= LED_BIT; // OUTPUT
+	DDRB |= LED_BIT0; // OUTPUT
+	DDRB |= LED_BIT1; // OUTPUT
+	DDRB |= LED_BIT2; // OUTPUT
+        PORTB = 0b00000000; // set all pins to LOW
+
+    
+	ADCSRA |= _BV(ADPS2)|_BV(ADPS0); // set ADC division factor to 256
+	ADCSRA |= _BV(ADEN)|_BV(ADIE); // enable ADC interrupt
+	//ADMUX = _BV(MUX1); // set ADC4 (PB4) as audio input
+    ADMUX |= _BV(MUX0)|_BV(MUX1); // select ADC3 (PB3)
+	ADMUX |= _BV(ADLAR); // left adjust of ADC result
+    
+        sei(); // enable global interrupts
+        
+    ADCSRA |= _BV(ADSC); // start first signal acquisition
+
+
+        /* loop */
+        while (1);
+}
